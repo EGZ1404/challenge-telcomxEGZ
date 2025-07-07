@@ -1,0 +1,85 @@
+# telecomx_churn_analysis.py
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Configuración general
+sns.set(style="whitegrid")
+plt.rcParams["figure.figsize"] = (10, 6)
+
+# 1. Cargar datos
+url = "https://raw.githubusercontent.com/alura-cursos/challenge2-data-science-LATAM/main/TelecomX_Data.json"
+df = pd.read_json(url)
+
+print("✅ Datos cargados correctamente")
+print(df.head())
+
+# 2. Revisión general
+print("\n📊 Información general:")
+print(df.info())
+
+print("\n🔎 Valores nulos por columna:")
+print(df.isnull().sum())
+
+# 3. Limpieza de datos
+
+# Eliminar espacios en blanco
+df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+
+# Convertir 'TotalGasto' a numérico (puede tener strings no numéricos)
+df['TotalGasto'] = pd.to_numeric(df['TotalGasto'], errors='coerce')
+
+# Eliminar columnas que no aportan (ejemplo: ID)
+if 'IDCliente' in df.columns:
+    df.drop('IDCliente', axis=1, inplace=True)
+
+# Eliminar filas completamente vacías
+df.dropna(how="all", inplace=True)
+
+# Eliminar filas con algún valor nulo
+df.dropna(inplace=True)
+
+# Corregir tipos de datos
+df['SeniorCitizen'] = df['SeniorCitizen'].astype(int).astype(str)
+
+print("\n✅ Datos limpiados:")
+print(df.info())
+
+# 4. Análisis exploratorio
+
+# Proporción general de Churn
+sns.countplot(data=df, x="Churn", palette="Set2")
+plt.title("Distribución de Churn")
+plt.show()
+
+# Variables categóricas vs Churn
+cat_cols = df.select_dtypes(include="object").columns.drop("Churn")
+
+for col in cat_cols:
+    plt.figure()
+    sns.countplot(data=df, x=col, hue="Churn", palette="Set1")
+    plt.xticks(rotation=45)
+    plt.title(f"{col} vs Churn")
+    plt.tight_layout()
+    plt.show()
+
+# Análisis de correlación para variables numéricas
+numeric_cols = df.select_dtypes(include=["float64", "int64"]).columns
+
+if len(numeric_cols) > 0:
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(df[numeric_cols].corr(), annot=True, cmap="coolwarm")
+    plt.title("Correlación entre variables numéricas")
+    plt.show()
+
+# Boxplot: TotalGasto vs Churn
+plt.figure()
+sns.boxplot(x="Churn", y="TotalGasto", data=df, palette="pastel")
+plt.title("Distribución de TotalGasto por Churn")
+plt.show()
+
+# 5. Exportar archivo limpio
+df.to_csv("clean_TelecomX.csv", index=False)
+print("\n💾 Archivo exportado como clean_TelecomX.csv")
